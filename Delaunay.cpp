@@ -39,61 +39,52 @@ void main() {
 		//find the triangle unit that point locates.
 //		leafloop(&root);
 		auto locatedleafs = pointSearch(&root, pointadv);
-		if (locatedleafs.size() == 1) {
-			trileaf* cleaf = locatedleafs[0];
+		trileaf* cleaf = locatedleafs[0];
 
-			trileaf* leafs = new trileaf[3];
-			edge e1, e2, e3;
+		trileaf* leafs = new trileaf[3];
+		edge e1, e2, e3;
 
 
-			//delete the father trileaf in trileaf_pointindex
-			trileaf_pointindex_delete(cleaf->t);
+		//delete the father trileaf in trileaf_pointindex
+		trileaf_pointindex_delete(cleaf->t);
 
-			//add to DAG
-			triangle t1 = { cleaf->t.p1, cleaf->t.p2, pointadv };
-			leafs[0].triid = ++triid;
-			leafs[0].t = t1;
-			cleaf->childrenptr.push_back(&leafs[0]);
-			e1 = { cleaf->t.p1, cleaf->t.p2 };
-			//add to trileaf_pointindex
-			trileaf_pointindex[cleaf->t.p1.index].push_back(&leafs[0]);
-			trileaf_pointindex[cleaf->t.p2.index].push_back(&leafs[0]);
-			trileaf_pointindex[pointadv.index].push_back(&leafs[0]);
-			//edge validation and legallize
-			edgevalidation(&root, pointadv, e1);
-
+		//add to DAG
+		triangle t1 = { cleaf->t.p1, cleaf->t.p2, pointadv };
+		leafs[0].triid = ++triid;
+		leafs[0].t = t1;
+		cleaf->childrenptr.push_back(&leafs[0]);
+		e1 = { cleaf->t.p1, cleaf->t.p2 };
+		//add to trileaf_pointindex
+		trileaf_pointindex[cleaf->t.p1.index].push_back(&leafs[0]);
+		trileaf_pointindex[cleaf->t.p2.index].push_back(&leafs[0]);
+		trileaf_pointindex[pointadv.index].push_back(&leafs[0]);
+		//edge validation and legallize
+		edgevalidation(&root, pointadv, e1);
 
 
 
-			triangle t2 = { cleaf->t.p2, cleaf->t.p3, pointadv };
-			leafs[1].triid = ++triid;
-			leafs[1].t = t2;
-			cleaf->childrenptr.push_back(&leafs[1]);
-			e2 = { cleaf->t.p2, cleaf->t.p3 };
-			trileaf_pointindex[cleaf->t.p2.index].push_back(&leafs[1]);
-			trileaf_pointindex[cleaf->t.p3.index].push_back(&leafs[1]);
-			trileaf_pointindex[pointadv.index].push_back(&leafs[1]);
-			edgevalidation(&root, pointadv, e2);
+
+		triangle t2 = { cleaf->t.p2, cleaf->t.p3, pointadv };
+		leafs[1].triid = ++triid;
+		leafs[1].t = t2;
+		cleaf->childrenptr.push_back(&leafs[1]);
+		e2 = { cleaf->t.p2, cleaf->t.p3 };
+		trileaf_pointindex[cleaf->t.p2.index].push_back(&leafs[1]);
+		trileaf_pointindex[cleaf->t.p3.index].push_back(&leafs[1]);
+		trileaf_pointindex[pointadv.index].push_back(&leafs[1]);
+		edgevalidation(&root, pointadv, e2);
 
 
-			triangle t3 = { cleaf->t.p1, cleaf->t.p3, pointadv };
-			leafs[2].triid = ++triid;
-			leafs[2].t = t3;
-			cleaf->childrenptr.push_back(&leafs[2]);
-			e3 = { cleaf->t.p1, cleaf->t.p3 };
-			trileaf_pointindex[cleaf->t.p1.index].push_back(&leafs[2]);
-			trileaf_pointindex[cleaf->t.p3.index].push_back(&leafs[2]);
-			trileaf_pointindex[pointadv.index].push_back(&leafs[2]);
-			edgevalidation(&root, pointadv, e3);
-		}
-		else if (locatedleafs.size() == 2) {
-			std::cout << "***2" << std::endl;
-
-		}
-		else {
-			throw new std::exception();
-		}
+		triangle t3 = { cleaf->t.p1, cleaf->t.p3, pointadv };
+		leafs[2].triid = ++triid;
+		leafs[2].t = t3;
+		cleaf->childrenptr.push_back(&leafs[2]);
+		e3 = { cleaf->t.p1, cleaf->t.p3 };
+		trileaf_pointindex[cleaf->t.p1.index].push_back(&leafs[2]);
+		trileaf_pointindex[cleaf->t.p3.index].push_back(&leafs[2]);
+		trileaf_pointindex[pointadv.index].push_back(&leafs[2]);
+		edgevalidation(&root, pointadv, e3);
 	}
 
-//	leafloop(pointnum);
+	leafloop(pointnum);
 }

@@ -119,11 +119,16 @@ std::vector<trileaf*>* trileaf_pointindex;
 //return all trileaves which contain expected edge in trileaf_pointindex
 std::vector<trileaf*> edgesearch(const edge& e) {
 	std::vector<trileaf*> newleafs;
+	int i = 0;
 	auto trileafswithp1 = trileaf_pointindex[e.p1.index];
 	if (trileafswithp1.size()) {
 		for (auto trileafwithp1 : trileafswithp1) {
 			if (trileafwithp1->isvertex(e.p2)) {
 				newleafs.push_back(trileafwithp1);
+				++i;
+			}
+			if (i == 2) {
+				break;
 			}
 		}
 	}
@@ -258,128 +263,123 @@ bool isboundaryvertex(const double2adv& p) {
 void edgevalidation(trileaf* root, const double2adv& newpoint, const edge& keyedge) {
 	if (keyedge != edge1 && keyedge != edge2 && keyedge != edge3) {
 		auto leafs = edgesearch(keyedge);
-		if (leafs.size() != 2) {
-			throw new std::exception();
+		bool i = leafs[0]->isvertex(newpoint);
+		bool j = leafs[1]->isvertex(newpoint);
+		trileaf* existedleaf;
+
+		if (i == false && j == true) {
+			existedleaf = leafs[0];
+		}
+		else if (i == true && j == false) {
+			existedleaf = leafs[1];
 		}
 		else {
-			bool i = leafs[0]->isvertex(newpoint);
-			bool j = leafs[1]->isvertex(newpoint);
-			trileaf* existedleaf;
+			throw new std::exception();
+		}
+		auto tri1 = existedleaf->t.counterclockwise();
 
-			if (i == false && j == true) {
-				existedleaf = leafs[0];
+
+		int counter = 0;
+		double judge = 0;
+		if (isboundaryvertex(existedleaf->t.p1))counter++;
+		if (isboundaryvertex(existedleaf->t.p2))counter++;
+		if (isboundaryvertex(existedleaf->t.p3))counter++;
+
+		double2adv commonpointnew;
+		if (existedleaf->t.p1.index != keyedge.p1.index && existedleaf->t.p1.index != keyedge.p2.index) {
+			commonpointnew = existedleaf->t.p1;
+		}
+		else if (existedleaf->t.p2.index != keyedge.p1.index && existedleaf->t.p2.index != keyedge.p2.index) {
+			commonpointnew = existedleaf->t.p2;
+		}
+		else {
+			commonpointnew = existedleaf->t.p3;
+		}
+
+
+		//find if these two triangle forms a concave polygon
+		bool isconcave = true;
+		double2 P1 = keyedge.p1.loc;
+		double2 P2 = keyedge.p2.loc;
+		double2 Q1 = newpoint.loc;
+		double2 Q2 = commonpointnew.loc;
+		//fast judge
+		if (fmin(P1.x, P2.x) <= fmax(Q1.x, Q2.x) &&
+			fmin(Q1.x, Q2.x) <= fmax(P1.x, P2.x) &&
+			fmin(P1.y, P2.y) <= fmax(Q1.y, Q2.y) &&
+			fmin(Q1.y, Q2.y) <= fmax(P1.y, P2.y)
+			) {
+			//cross judge
+			if (((Q1.x - P1.x) * (Q1.y - Q2.y) - (Q1.y - P1.y) * (Q1.x - Q2.x)) * ((Q1.x - P2.x) * (Q1.y - Q2.y) - (Q1.y - P2.y) * (Q1.x - Q2.x)) < 0 &&
+				((P1.x - Q1.x) * (P1.y - P2.y) - (P1.y - Q1.y) * (P1.x - P2.x)) * ((P1.x - Q2.x) * (P1.y - P2.y) - (P1.y - Q2.y) * (P1.x - P2.x)) < 0) {
+				isconcave = false;
 			}
-			else if (i == true && j == false) {
-				existedleaf = leafs[1];
+		}
+
+
+
+		if (isconcave) {
+			judge = 0;
+		}
+		else if (counter == 1) {
+			if (isboundaryvertex(keyedge.p1) || isboundaryvertex(keyedge.p2)) {
+				judge = 1;
 			}
-			else {
-				throw new std::exception();
-			}
-			auto tri1 = existedleaf->t.counterclockwise();
+		}
+		else {
+			double judgematix[3][3];
+			judgematix[0][0] = (tri1[0].loc.x - newpoint.loc.x);
+			judgematix[0][1] = (tri1[0].loc.y - newpoint.loc.y);
+			judgematix[0][2] = (tri1[0].loc.x * tri1[0].loc.x - newpoint.loc.x * newpoint.loc.x) +
+				(tri1[0].loc.y * tri1[0].loc.y - newpoint.loc.y * newpoint.loc.y);
+			judgematix[1][0] = (tri1[1].loc.x - newpoint.loc.x);
+			judgematix[1][1] = (tri1[1].loc.y - newpoint.loc.y);
+			judgematix[1][2] = (tri1[1].loc.x * tri1[1].loc.x - newpoint.loc.x * newpoint.loc.x) +
+				(tri1[1].loc.y * tri1[1].loc.y - newpoint.loc.y * newpoint.loc.y);
+			judgematix[2][0] = (tri1[2].loc.x - newpoint.loc.x);
+			judgematix[2][1] = (tri1[2].loc.y - newpoint.loc.y);
+			judgematix[2][2] = (tri1[2].loc.x * tri1[2].loc.x - newpoint.loc.x * newpoint.loc.x) +
+				(tri1[2].loc.y * tri1[2].loc.y - newpoint.loc.y * newpoint.loc.y);
+
+			judge += judgematix[0][0] *
+				(judgematix[1][1] * judgematix[2][2] - judgematix[2][1] * judgematix[1][2]);
+			judge -= judgematix[0][1] *
+				(judgematix[1][0] * judgematix[2][2] - judgematix[1][2] * judgematix[2][0]);
+			judge += judgematix[0][2] *
+				(judgematix[1][0] * judgematix[2][1] - judgematix[1][1] * judgematix[2][0]);
+		}
+
+		if (judge > 0) {
+			//it means it is a illegal edge
+
+			//step1. delete triangles contain this edge
+			trileaf_pointindex_delete(keyedge);
+
+			//step2. add new two flipped triangle to DAG
+			//and add new two flipped triangle to trileaf_pointindex
+			trileaf* newleaf = new trileaf[2];
+			newleaf[0].triid = ++triid;
+			newleaf[1].triid = ++triid;
+			newleaf[0].t = { newpoint, commonpointnew, keyedge.p1 };
+			newleaf[1].t = { newpoint, commonpointnew, keyedge.p2 };
+			leafs[0]->childrenptr.push_back(&newleaf[0]);
+			leafs[0]->childrenptr.push_back(&newleaf[1]);
+			leafs[1]->childrenptr.push_back(&newleaf[0]);
+			leafs[1]->childrenptr.push_back(&newleaf[1]);
+			trileaf_pointindex[newpoint.index].push_back(&newleaf[0]);
+			trileaf_pointindex[newpoint.index].push_back(&newleaf[1]);
+			trileaf_pointindex[commonpointnew.index].push_back(&newleaf[0]);
+			trileaf_pointindex[commonpointnew.index].push_back(&newleaf[1]);
+			trileaf_pointindex[keyedge.p1.index].push_back(&newleaf[0]);
+			trileaf_pointindex[keyedge.p2.index].push_back(&newleaf[1]);
 
 
-			int counter = 0;
-			double judge = 0;
-			if (isboundaryvertex(existedleaf->t.p1))counter++;
-			if (isboundaryvertex(existedleaf->t.p2))counter++;
-			if (isboundaryvertex(existedleaf->t.p3))counter++;
-
-			double2adv commonpointnew;
-			if (existedleaf->t.p1.index != keyedge.p1.index && existedleaf->t.p1.index != keyedge.p2.index) {
-				commonpointnew = existedleaf->t.p1;
-			}
-			else if (existedleaf->t.p2.index != keyedge.p1.index && existedleaf->t.p2.index != keyedge.p2.index) {
-				commonpointnew = existedleaf->t.p2;
-			}
-			else {
-				commonpointnew = existedleaf->t.p3;
-			}
-
-
-			//find if these two triangle forms a concave polygon
-			bool isconcave = true;
-			double2 P1 = keyedge.p1.loc;
-			double2 P2 = keyedge.p2.loc;
-			double2 Q1 = newpoint.loc;
-			double2 Q2 = commonpointnew.loc;
-			//fast judge
-			if (fmin(P1.x, P2.x) <= fmax(Q1.x, Q2.x) &&
-				fmin(Q1.x, Q2.x) <= fmax(P1.x, P2.x) &&
-				fmin(P1.y, P2.y) <= fmax(Q1.y, Q2.y) &&
-				fmin(Q1.y, Q2.y) <= fmax(P1.y, P2.y)
-				) {
-				//cross judge
-				if (((Q1.x - P1.x) * (Q1.y - Q2.y) - (Q1.y - P1.y) * (Q1.x - Q2.x)) * ((Q1.x - P2.x) * (Q1.y - Q2.y) - (Q1.y - P2.y) * (Q1.x - Q2.x)) < 0 &&
-					((P1.x - Q1.x) * (P1.y - P2.y) - (P1.y - Q1.y) * (P1.x - P2.x)) * ((P1.x - Q2.x) * (P1.y - P2.y) - (P1.y - Q2.y) * (P1.x - P2.x)) < 0) {
-					isconcave = false;
-				}
-			}
-
-
-
-			if (isconcave) {
-				judge = 0;
-			}
-			else if (counter == 1) {
-				if (isboundaryvertex(keyedge.p1) || isboundaryvertex(keyedge.p2)) {
-					judge = 1;
-				}
-			}
-			else {
-				double judgematix[3][3];
-				judgematix[0][0] = (tri1[0].loc.x - newpoint.loc.x);
-				judgematix[0][1] = (tri1[0].loc.y - newpoint.loc.y);
-				judgematix[0][2] = (tri1[0].loc.x * tri1[0].loc.x - newpoint.loc.x * newpoint.loc.x) +
-					(tri1[0].loc.y * tri1[0].loc.y - newpoint.loc.y * newpoint.loc.y);
-				judgematix[1][0] = (tri1[1].loc.x - newpoint.loc.x);
-				judgematix[1][1] = (tri1[1].loc.y - newpoint.loc.y);
-				judgematix[1][2] = (tri1[1].loc.x * tri1[1].loc.x - newpoint.loc.x * newpoint.loc.x) +
-					(tri1[1].loc.y * tri1[1].loc.y - newpoint.loc.y * newpoint.loc.y);
-				judgematix[2][0] = (tri1[2].loc.x - newpoint.loc.x);
-				judgematix[2][1] = (tri1[2].loc.y - newpoint.loc.y);
-				judgematix[2][2] = (tri1[2].loc.x * tri1[2].loc.x - newpoint.loc.x * newpoint.loc.x) +
-					(tri1[2].loc.y * tri1[2].loc.y - newpoint.loc.y * newpoint.loc.y);
-
-				judge += judgematix[0][0] *
-					(judgematix[1][1] * judgematix[2][2] - judgematix[2][1] * judgematix[1][2]);
-				judge -= judgematix[0][1] *
-					(judgematix[1][0] * judgematix[2][2] - judgematix[1][2] * judgematix[2][0]);
-				judge += judgematix[0][2] *
-					(judgematix[1][0] * judgematix[2][1] - judgematix[1][1] * judgematix[2][0]);
-			}
-
-			if (judge > 0) {
-				//it means it is a illegal edge
-
-				//step1. delete triangles contain this edge
-				trileaf_pointindex_delete(keyedge);
-
-				//step2. add new two flipped triangle to DAG
-				//and add new two flipped triangle to trileaf_pointindex
-				trileaf* newleaf = new trileaf[2];
-				newleaf[0].triid = ++triid;
-				newleaf[1].triid = ++triid;
-				newleaf[0].t = { newpoint, commonpointnew, keyedge.p1 };
-				newleaf[1].t = { newpoint, commonpointnew, keyedge.p2 };
-				leafs[0]->childrenptr.push_back(&newleaf[0]);
-				leafs[0]->childrenptr.push_back(&newleaf[1]);
-				leafs[1]->childrenptr.push_back(&newleaf[0]);
-				leafs[1]->childrenptr.push_back(&newleaf[1]);
-				trileaf_pointindex[newpoint.index].push_back(&newleaf[0]);
-				trileaf_pointindex[newpoint.index].push_back(&newleaf[1]);
-				trileaf_pointindex[commonpointnew.index].push_back(&newleaf[0]);
-				trileaf_pointindex[commonpointnew.index].push_back(&newleaf[1]);
-				trileaf_pointindex[keyedge.p1.index].push_back(&newleaf[0]);
-				trileaf_pointindex[keyedge.p2.index].push_back(&newleaf[1]);
-
-
-				edgevalidation(root, newpoint, { commonpointnew, keyedge.p1 });
-				edgevalidation(root, newpoint, { commonpointnew, keyedge.p2 });
-			}
-			else {
-				//it means it is a legal edge
-				return;
-			}
+			edgevalidation(root, newpoint, { commonpointnew, keyedge.p1 });
+			edgevalidation(root, newpoint, { commonpointnew, keyedge.p2 });
+		}
+		else {
+			//it means it is a legal edge
+			return;
 		}
 	}
 	else
