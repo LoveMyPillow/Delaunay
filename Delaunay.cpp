@@ -1,10 +1,6 @@
-#include <iostream>
-#include <fstream>
-#include <string>
-
 #include "Delaunay.h"
 
-const std::string psfn = R"(F:\OneDrive\Delaunay\pointsettest.dat)";
+const std::string psfn = R"(./pointset.dat)";
 
 
 void main() {
@@ -18,9 +14,13 @@ void main() {
 	double2* pointset = new double2[pointnum];
 	frptr.read((char*)pointset, filelen);
 
-	std::qsort(pointset, pointnum, sizeof(double2), compare);
+	double2adv* pointsetadv = new double2adv[pointnum];
 
-	double2 p0 = pointset[pointnum - 1];
+	for (int i = 0; i < pointnum; i++) {
+		pointsetadv[i] = { i + 3, pointset[i] };
+	}
+
+	std::qsort(pointsetadv, pointnum, sizeof(double2adv), compare);
 
 	triangle maxbound = { p1, p2, p3 };
 
@@ -31,10 +31,12 @@ void main() {
 	trileaf_pointindex[1].push_back(&root);
 	trileaf_pointindex[2].push_back(&root);
 
+	const int power = fmax(log10(pointnum)-2, 0);
+	const int unit = pow(10, power);
+
 	for (int i = 0; i < pointnum; i++ ) {
-		double2 point = pointset[i];
-		double2adv pointadv = { i + 3, point };
-		if(i%10 == 0)
+		double2adv pointadv = pointsetadv[i];
+		if(i%unit == 0)
 			std::cout << i << std::endl;
 		//find the triangle unit that point locates.
 //		leafloop(&root);

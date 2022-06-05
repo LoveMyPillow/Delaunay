@@ -9,7 +9,11 @@
 #include <queue>
 #include <exception>
 #include <algorithm>
-#include <unordered_set>
+#include <set>
+#include <iostream>
+#include <fstream>
+#include <string>
+
 
 int triid = 0;
 
@@ -52,11 +56,11 @@ bool operator != (const edge& a, const edge& b) {
 }
 
 int compare(const void* elem1, const void* elem2) {
-	double2 a = *(double2*)elem1;
-	double2 b = *(double2*)elem2;
+	double2adv a = *(double2adv*)elem1;
+	double2adv b = *(double2adv*)elem2;
 
-	if (a > b) return 1;
-	else if (a == b) return 0;
+	if (a.loc > b.loc) return 1;
+	else if (a.loc == b.loc) return 0;
 	else return -1;
 }
 
@@ -388,20 +392,47 @@ void edgevalidation(trileaf* root, const double2adv& newpoint, const edge& keyed
 	}
 }
 
+const std::string plfn = R"(./delaunaymesh.dat)";
+
 void leafloop(int points) {
 	std::cout << "=====================================================" << std::endl;
+
+	//for (int i = trileaf_pointindex[0].size() - 1; i >= 0; --i) {
+	//	trileaf_pointindex_delete(trileaf_pointindex[0][i]->t);
+	//}
+	//for (int i = trileaf_pointindex[1].size() - 1; i >= 0; --i) {
+	//	trileaf_pointindex_delete(trileaf_pointindex[1][i]->t);
+	//}
+	//for (int i = trileaf_pointindex[2].size() - 1; i >= 0; --i) {
+	//	trileaf_pointindex_delete(trileaf_pointindex[2][i]->t);
+	//}
+
+	std::set<int> recorded;
+	std::ofstream fwptr;
+	fwptr.open(plfn, std::ios::binary);
+	
+	int j = 0;
 	for (int i = 0; i < points; i++) {
 		auto cvec = trileaf_pointindex[i + 3];
+		int pointindex[3];
 
 		for (const trileaf* cleaf : cvec) {
-			if (cleaf->isvertex(0) || cleaf->isvertex(1) || cleaf->isvertex(2)) {
+			if (recorded.find(cleaf->triid)!= recorded.end() 
+				||cleaf->isvertex(0) || cleaf->isvertex(1) || cleaf->isvertex(2)) {
 			}
 			else {
-				std::cout << "(*" << cleaf->triid << "*)" << " Triangle[{{" << cleaf->t.p1.loc.x << ", " << cleaf->t.p1.loc.y
-					<< "}, {" << cleaf->t.p2.loc.x << " ," << cleaf->t.p2.loc.y
-					<< " }, {" << cleaf->t.p3.loc.x << " ," << cleaf->t.p3.loc.y << "}}]," << std::endl;
-				//			std::cout << std::endl;
+				recorded.insert(cleaf->triid);
+				pointindex[0] = cleaf->t.p1.index-2;
+				pointindex[1] = cleaf->t.p2.index-2;
+				pointindex[2] = cleaf->t.p3.index-2;
+				//std::cout << "(*" << cleaf->triid << "*)" << " Triangle[{{" << cleaf->t.p1.loc.x << ", " << cleaf->t.p1.loc.y
+				//	<< "}, {" << cleaf->t.p2.loc.x << " ," << cleaf->t.p2.loc.y
+				//	<< " }, {" << cleaf->t.p3.loc.x << " ," << cleaf->t.p3.loc.y << "}}]," << std::endl;
+				fwptr.write((char*)pointindex, sizeof(int) * 3);
+				++j;
 			}
 		}
 	}
+	fwptr.close();
+	std::cout << j << std::endl;
 }
